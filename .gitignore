@@ -5,3 +5,4 @@ backend/venv/
 !.env.example
 node_modules/
 .aistudio/
+dist/
