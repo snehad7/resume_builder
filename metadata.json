@@ -1,0 +1,7 @@
+{
+  "name": "Resuvo",
+  "description": "Build a better resume. Move closer to your next opportunity.",
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

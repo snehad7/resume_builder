@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+}
+
+/* Resume Paper isolation: guarantees resume preview document is ALWAYS crisp white paper */
+#resume-document,
+.resume-page {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* Ensure resume preview children inherit resume paper colors, not app dark mode */
+#resume-document * {
+  color-scheme: light;
+}
+
+/* Document-level dynamic typographic & layout rules from Design Studio */
+#resume-document {
+  font-family: var(--resume-font-family, Inter, system-ui, sans-serif);
+}
+
+#resume-document h1,
+#resume-document .resume-name {
+  font-size: var(--resume-name-size, 26px) !important;
+  font-weight: var(--resume-name-weight, 700) !important;
+  font-style: var(--resume-name-style, normal) !important;
+  text-decoration: var(--resume-name-decoration, none) !important;
+}
+
+#resume-document h2,
+#resume-document .resume-section-heading {
+  font-size: var(--resume-heading-size, 14px) !important;
+  font-weight: var(--resume-heading-weight, 600) !important;
+  font-style: var(--resume-heading-style, normal) !important;
+  text-decoration: var(--resume-heading-decoration, none) !important;
+}
+
+#resume-document h3,
+#resume-document .resume-subheading {
+  font-weight: var(--resume-subheading-weight, 500) !important;
+  font-style: var(--resume-subheading-style, normal) !important;
+  text-decoration: var(--resume-subheading-decoration, none) !important;
+}
+
+#resume-document p,
+#resume-document li,
+#resume-document .resume-body-text {
+  font-size: var(--resume-body-size, 11px);
+  font-weight: var(--resume-body-weight, 400);
+  font-style: var(--resume-body-style, normal);
+  text-decoration: var(--resume-body-decoration, none);
+}
+
+/* Smooth app-level theme transitions */
+body {
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* Dark mode overrides for application inputs and controls */
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+.dark textarea,
+.dark select {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b;
+}
+
+/* High-Fidelity Print & PDF Styles */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  /* Hide all UI elements, navigation, editor forms, tabs, and buttons */
+  header,
+  nav,
+  aside:not(.print-sidebar),
+  .no-print,
+  button,
+  input,
+  textarea,
+  select {
+    display: none !important;
+  }
+
+  /* Reset body and application wrappers to full page */
+  html,
+  body,
+  #root,
+  main,
+  .grid {
+    background: white !important;
+    color: #111827 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Force resume paper container to be visible during print on all devices */
+  .resume-paper-container {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  #resume-document,
+  .resume-page {
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    page-break-after: avoid;
+    break-after: avoid;
+    background: white !important;
+  }
+
+  #resume-document * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
