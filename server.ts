@@ -3,11 +3,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from '@google/genai';
-import { createServer as createViteServer } from 'vite';
 import {
   evaluateResumeATSDeterministically,
   generateLocalImprovementSuggestions,
-} from './src/utils/atsEvaluator';
+} from './src/utils/atsEvaluator.ts';
 
 dotenv.config();
 
@@ -391,6 +390,7 @@ Do NOT invent qualifications that are not in their resume context.`,
 
   // Mount Vite or static server
   if (!isProduction) {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true, host: '0.0.0.0', port: PORT },
       appType: 'spa',
@@ -399,7 +399,7 @@ Do NOT invent qualifications that are not in their resume context.`,
   } else {
     const distPath = path.resolve(__dirname, 'dist');
     app.use(express.static(distPath));
-    app.get('*', (_req, res) => {
+    app.get('/{*splat}', (_req, res) => {
       res.sendFile(path.resolve(distPath, 'index.html'));
     });
   }

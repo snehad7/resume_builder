@@ -1,5 +1,3 @@
-import { ResumeData } from './resume';
-
 export type ATSDimensionStatus = 'good' | 'average' | 'needs-attention';
 
 export interface ATSDimension {

@@ -1,5 +1,5 @@
-import { ResumeData } from '../types/resume';
-import { ATSReadinessResult, ATSDimension, ResumeSuggestion } from '../types/resumeBuddy';
+import type { ResumeData } from '../types/resume.ts';
+import type { ATSReadinessResult, ATSDimension, ResumeSuggestion } from '../types/resumeBuddy.ts';
 
 /**
  * Analyzes resume data deterministically across the 5 required ATS dimensions:
