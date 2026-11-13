@@ -399,9 +399,9 @@ Do NOT invent qualifications that are not in their resume context.`,
   } else {
     const distPath = path.resolve(__dirname, 'dist');
     app.use(express.static(distPath));
-    app.get('/{*splat}', (_req, res) => {
-  res.sendFile(path.resolve(distPath, 'index.html'));
-});
+    app.get('*', (_req, res) => {
+      res.sendFile(path.resolve(distPath, 'index.html'));
+    });
   }
 
   app.listen(PORT, '0.0.0.0', () => {
