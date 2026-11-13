@@ -1,5 +1,7 @@
 import React from 'react';
 import { ResumeData, ResumeSettings, ResumeTemplateId } from '../types/resume';
+import { CanvaResumeRenderer } from './CanvaResumeLayouts';
+import { isExtraCanvaTemplate } from '../data/canvaTemplates';
 import { Mail, Phone, MapPin, Globe, Paperclip, Download, ExternalLink } from 'lucide-react';
 
 const LinkedinIcon = ({ className = 'w-3.5 h-3.5', style }: { className?: string; style?: React.CSSProperties }) => (
@@ -49,9 +51,10 @@ interface ResumePreviewProps {
   data: ResumeData;
   template: ResumeTemplateId;
   settings: ResumeSettings;
+  isThumbnail?: boolean;
 }
 
-export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, template, settings }) => {
+export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, template, settings, isThumbnail = false }) => {
   const { personal, summary, experience, education, skillCategories, projects, certifications, customSections, declaration } = data;
   const { primaryColor = '#2563eb', spacing = 'normal', visibleSections } = settings;
 
@@ -2999,11 +3002,856 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, template, se
     </div>
   );
 
+  // =========================================================================
+  // 14. CANVA NORDIC SAGE (Soft tinted sidebar + tracked headers + portrait)
+  // =========================================================================
+  const renderCanvaNordic = () => {
+    const initials = (personal.fullName || 'Your Name')
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((s) => s[0]?.toUpperCase() || '')
+      .join('');
+
+    return (
+      <div className="flex min-h-[297mm] text-slate-800" style={{ lineHeight }}>
+        {/* Soft Tinted Canva Nordic Sidebar */}
+        <aside
+          className="w-[34%] p-6 flex flex-col gap-5 border-r border-slate-200 print-sidebar"
+          style={{ backgroundColor: `${primaryColor}10` }}
+        >
+          {/* Portrait or Monogram */}
+          <div className="flex flex-col items-center text-center">
+            {personal.photo ? (
+              <div
+                className="w-24 h-24 rounded-2xl overflow-hidden border-2 shadow-xs mb-3 bg-white"
+                style={{ borderColor: primaryColor }}
+              >
+                <img src={personal.photo} alt={personal.fullName} className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <div
+                className="w-20 h-20 rounded-2xl flex items-center justify-center text-xl font-bold text-white mb-3 shadow-xs"
+                style={{ backgroundColor: primaryColor }}
+              >
+                {initials || 'CV'}
+              </div>
+            )}
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight leading-snug">
+              {personal.fullName || 'Your Name'}
+            </h1>
+            {personal.title && (
+              <p className="text-xs font-semibold uppercase tracking-widest mt-1" style={{ color: primaryColor }}>
+                {personal.title}
+              </p>
+            )}
+          </div>
+
+          {/* Contact */}
+          <div className="space-y-2 text-[11px] text-slate-600 pt-2 border-t border-slate-200/80">
+            <h2 className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: primaryColor }}>
+              Contact
+            </h2>
+            {personal.email && (
+              <div className="flex items-center gap-2 break-all">
+                <Mail className="w-3 h-3 shrink-0" style={{ color: primaryColor }} />
+                <span>{personal.email}</span>
+              </div>
+            )}
+            {personal.phone && (
+              <div className="flex items-center gap-2">
+                <Phone className="w-3 h-3 shrink-0" style={{ color: primaryColor }} />
+                <span>{personal.phone}</span>
+              </div>
+            )}
+            {personal.location && (
+              <div className="flex items-center gap-2">
+                <MapPin className="w-3 h-3 shrink-0" style={{ color: primaryColor }} />
+                <span>{personal.location}</span>
+              </div>
+            )}
+            {validateAndFormatUrl(personal.website).isValid && (
+              <div className="flex items-center gap-2 break-all">
+                <Globe className="w-3 h-3 shrink-0" style={{ color: primaryColor }} />
+                <span>{validateAndFormatUrl(personal.website).display}</span>
+              </div>
+            )}
+            {validateAndFormatUrl(personal.linkedin).isValid && (
+              <div className="flex items-center gap-2 break-all">
+                <LinkedinIcon className="w-3 h-3 shrink-0" style={{ color: primaryColor }} />
+                <span>{validateAndFormatUrl(personal.linkedin).display}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Skills with Visual Bars */}
+          {visibleSections.skills && skillCategories.length > 0 && (
+            <div className="space-y-3 pt-2 border-t border-slate-200/80">
+              <h2 className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: primaryColor }}>
+                Expertise
+              </h2>
+              {skillCategories.map((cat) => (
+                <div key={cat.id} className="space-y-1.5">
+                  {cat.name && <div className="text-[11px] font-semibold text-slate-800">{cat.name}</div>}
+                  <div className="flex flex-wrap gap-1">
+                    {cat.skills.map((skill, idx) => (
+                      <span
+                        key={idx}
+                        className="text-[10px] px-2 py-0.5 rounded-sm bg-white border border-slate-200 text-slate-700 font-medium"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Education in Sidebar */}
+          {visibleSections.education && education.length > 0 && (
+            <div className="space-y-2.5 pt-2 border-t border-slate-200/80">
+              <h2 className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: primaryColor }}>
+                Education
+              </h2>
+              {education.map((edu) => (
+                <div key={edu.id} className="text-[11px] space-y-0.5">
+                  <div className="font-bold text-slate-900">{edu.degree}</div>
+                  <div className="text-slate-600">{edu.institution}</div>
+                  <div className="text-[10px] text-slate-500">
+                    {edu.startDate} {edu.endDate ? `– ${edu.endDate}` : edu.current ? '– Present' : ''}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </aside>
+
+        {/* Right Main Column */}
+        <div className="flex-1 p-7 flex flex-col" style={{ gap: `${sectionGap}px` }}>
+          {visibleSections.summary && summary && (
+            <section>
+              <h2 className="text-xs font-bold uppercase tracking-[0.18em] mb-2" style={{ color: primaryColor }}>
+                Profile
+              </h2>
+              <p className="text-xs text-slate-700 leading-relaxed">{summary}</p>
+            </section>
+          )}
+
+          {visibleSections.experience && experience.length > 0 && (
+            <section>
+              <h2 className="text-xs font-bold uppercase tracking-[0.18em] mb-3" style={{ color: primaryColor }}>
+                Experience
+              </h2>
+              <div className="space-y-4">
+                {experience.map((exp) => (
+                  <div key={exp.id} className="relative pl-4 border-l-2" style={{ borderColor: `${primaryColor}45` }}>
+                    <div
+                      className="w-2 h-2 rounded-full absolute -left-[5px] top-1.5"
+                      style={{ backgroundColor: primaryColor }}
+                    />
+                    <div className="flex justify-between items-baseline gap-2">
+                      <h3 className="text-xs font-bold text-slate-900">{exp.role}</h3>
+                      <span className="text-[10px] font-medium text-slate-500 shrink-0">
+                        {exp.startDate} – {exp.current ? 'Present' : exp.endDate}
+                      </span>
+                    </div>
+                    <div className="text-[11px] font-medium mb-1" style={{ color: primaryColor }}>
+                      {exp.company} {exp.location ? `· ${exp.location}` : ''}
+                    </div>
+                    {exp.highlights && exp.highlights.length > 0 && (
+                      <ul className="list-disc list-outside ml-3.5 space-y-1 text-[11px] text-slate-700">
+                        {exp.highlights.filter(Boolean).map((h, i) => (
+                          <li key={i}>{h}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {visibleSections.projects && projects.length > 0 && (
+            <section>
+              <h2 className="text-xs font-bold uppercase tracking-[0.18em] mb-2.5" style={{ color: primaryColor }}>
+                Selected Projects
+              </h2>
+              <div className="space-y-2.5">
+                {projects.map((p) => (
+                  <div key={p.id} className="p-2.5 rounded-lg border border-slate-200/80 bg-slate-50/50">
+                    <div className="flex justify-between items-baseline">
+                      <h3 className="text-xs font-bold text-slate-900">{p.name}</h3>
+                      {p.techStack && <span className="text-[10px] text-slate-500">{p.techStack}</span>}
+                    </div>
+                    {p.description && <p className="text-[11px] text-slate-700 mt-1">{p.description}</p>}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {visibleSections.certifications && certifications.length > 0 && (
+            <section>
+              <h2 className="text-xs font-bold uppercase tracking-[0.18em] mb-2" style={{ color: primaryColor }}>
+                Certifications
+              </h2>
+              <div className="space-y-1 text-[11px] text-slate-700">
+                {certifications.map((c) => (
+                  <div key={c.id} className="flex justify-between">
+                    <span>
+                      <strong>{c.name}</strong> {c.issuer ? `— ${c.issuer}` : ''}
+                    </span>
+                    <span className="text-slate-500">{c.date}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {declaration && declaration.enabled !== false && renderDeclarationSection('academic')}
+        </div>
+      </div>
+    );
+  };
+
+  // =========================================================================
+  // 15. CANVA EDITORIAL BOLD (Oversized nameplate + Asymmetric Split Callout)
+  // =========================================================================
+  const renderCanvaEditorialSplit = () => (
+    <div style={{ padding: `${pageMargin}mm`, lineHeight }} className="text-slate-900">
+      {/* Bold Editorial Header Block */}
+      <header className="pb-5 mb-5 border-b-4" style={{ borderColor: primaryColor }}>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black uppercase tracking-tight text-slate-900 leading-none">
+              {personal.fullName || 'Your Name'}
+            </h1>
+            {personal.title && (
+              <div
+                className="inline-block mt-2 px-3 py-1 text-xs font-bold uppercase tracking-widest text-white"
+                style={{ backgroundColor: primaryColor }}
+              >
+                {personal.title}
+              </div>
+            )}
+          </div>
+          <div className="text-[11px] text-slate-600 space-y-0.5 text-right">
+            {personal.email && <div>{personal.email}</div>}
+            {personal.phone && <div>{personal.phone}</div>}
+            {personal.location && <div>{personal.location}</div>}
+            {validateAndFormatUrl(personal.website).isValid && (
+              <div style={{ color: primaryColor }}>{validateAndFormatUrl(personal.website).display}</div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Asymmetric Split Body */}
+      <div className="grid grid-cols-12 gap-6">
+        {/* Left Callout Column */}
+        <div className="col-span-4 space-y-5">
+          {visibleSections.summary && summary && (
+            <section className="p-3.5 rounded-lg" style={{ backgroundColor: `${primaryColor}12` }}>
+              <h2 className="text-[11px] font-extrabold uppercase tracking-wider mb-1.5" style={{ color: primaryColor }}>
+                About Me
+              </h2>
+              <p className="text-[11px] text-slate-700 leading-relaxed">{summary}</p>
+            </section>
+          )}
+
+          {visibleSections.skills && skillCategories.length > 0 && (
+            <section className="space-y-2.5">
+              <h2 className="text-xs font-extrabold uppercase tracking-wider border-b pb-1" style={{ borderColor: `${primaryColor}40`, color: primaryColor }}>
+                Core Skills
+              </h2>
+              {skillCategories.map((cat) => (
+                <div key={cat.id} className="space-y-1">
+                  {cat.name && <div className="text-[11px] font-bold text-slate-800">{cat.name}</div>}
+                  <ul className="space-y-0.5 text-[11px] text-slate-700">
+                    {cat.skills.map((s, idx) => (
+                      <li key={idx} className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-xs shrink-0" style={{ backgroundColor: primaryColor }} />
+                        <span>{s}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </section>
+          )}
+
+          {visibleSections.education && education.length > 0 && (
+            <section className="space-y-2">
+              <h2 className="text-xs font-extrabold uppercase tracking-wider border-b pb-1" style={{ borderColor: `${primaryColor}40`, color: primaryColor }}>
+                Education
+              </h2>
+              {education.map((edu) => (
+                <div key={edu.id} className="text-[11px] space-y-0.5">
+                  <div className="font-bold text-slate-900">{edu.degree}</div>
+                  <div className="text-slate-600">{edu.institution}</div>
+                  <div className="text-[10px] text-slate-500">
+                    {edu.startDate} – {edu.current ? 'Present' : edu.endDate}
+                  </div>
+                </div>
+              ))}
+            </section>
+          )}
+        </div>
+
+        {/* Right Primary Career Column */}
+        <div className="col-span-8 flex flex-col" style={{ gap: `${sectionGap}px` }}>
+          {visibleSections.experience && experience.length > 0 && (
+            <section>
+              <h2 className="text-xs font-extrabold uppercase tracking-wider border-b-2 pb-1 mb-3" style={{ borderColor: primaryColor, color: primaryColor }}>
+                Work Experience
+              </h2>
+              <div className="space-y-4">
+                {experience.map((exp) => (
+                  <div key={exp.id}>
+                    <div className="flex justify-between items-baseline">
+                      <h3 className="text-sm font-bold text-slate-900">{exp.role}</h3>
+                      <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-sm bg-slate-100 text-slate-700">
+                        {exp.startDate} – {exp.current ? 'Present' : exp.endDate}
+                      </span>
+                    </div>
+                    <div className="text-xs font-semibold text-slate-600 mb-1">
+                      {exp.company} {exp.location ? `· ${exp.location}` : ''}
+                    </div>
+                    {exp.highlights && exp.highlights.length > 0 && (
+                      <ul className="list-disc list-outside ml-4 space-y-1 text-[11px] text-slate-700">
+                        {exp.highlights.filter(Boolean).map((h, i) => (
+                          <li key={i}>{h}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {visibleSections.projects && projects.length > 0 && (
+            <section>
+              <h2 className="text-xs font-extrabold uppercase tracking-wider border-b-2 pb-1 mb-3" style={{ borderColor: primaryColor, color: primaryColor }}>
+                Key Initiatives & Projects
+              </h2>
+              <div className="space-y-2.5">
+                {projects.map((p) => (
+                  <div key={p.id} className="border-l-2 pl-3" style={{ borderColor: primaryColor }}>
+                    <div className="flex justify-between items-baseline">
+                      <h3 className="text-xs font-bold text-slate-900">{p.name}</h3>
+                      {p.techStack && <span className="text-[10px] text-slate-500">{p.techStack}</span>}
+                    </div>
+                    {p.description && <p className="text-[11px] text-slate-700 mt-0.5">{p.description}</p>}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {visibleSections.certifications && certifications.length > 0 && (
+            <section>
+              <h2 className="text-xs font-extrabold uppercase tracking-wider border-b-2 pb-1 mb-2" style={{ borderColor: primaryColor, color: primaryColor }}>
+                Certifications
+              </h2>
+              <div className="space-y-1 text-[11px] text-slate-700">
+                {certifications.map((c) => (
+                  <div key={c.id} className="flex justify-between">
+                    <span><strong>{c.name}</strong> {c.issuer ? `· ${c.issuer}` : ''}</span>
+                    <span className="text-slate-500">{c.date}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {declaration && declaration.enabled !== false && renderDeclarationSection('academic')}
+        </div>
+      </div>
+    </div>
+  );
+
+  // =========================================================================
+  // 16. CANVA MONOGRAM STUDIO (Centered Monogram Emblem + Pastel Header Card)
+  // =========================================================================
+  const renderCanvaMonogram = () => {
+    const initials = (personal.fullName || 'AB')
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((s) => s[0]?.toUpperCase() || '')
+      .join('');
+
+    return (
+      <div style={{ padding: `${pageMargin}mm`, lineHeight }} className="text-slate-800">
+        {/* Centered Monogram Card */}
+        <header
+          className="rounded-xl p-6 text-center mb-6 border"
+          style={{ backgroundColor: `${primaryColor}10`, borderColor: `${primaryColor}30` }}
+        >
+          <div
+            className="w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center text-base font-bold tracking-widest border-2 bg-white shadow-2xs"
+            style={{ borderColor: primaryColor, color: primaryColor }}
+          >
+            {initials || 'CV'}
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{personal.fullName || 'Your Name'}</h1>
+          {personal.title && (
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] mt-1" style={{ color: primaryColor }}>
+              {personal.title}
+            </p>
+          )}
+          <div className="flex flex-wrap justify-center items-center gap-x-4 gap-y-1 mt-3 text-[11px] text-slate-600">
+            {personal.email && <span>{personal.email}</span>}
+            {personal.phone && <span>· {personal.phone}</span>}
+            {personal.location && <span>· {personal.location}</span>}
+            {validateAndFormatUrl(personal.linkedin).isValid && (
+              <span>· {validateAndFormatUrl(personal.linkedin).display}</span>
+            )}
+          </div>
+        </header>
+
+        {/* Summary */}
+        {visibleSections.summary && summary && (
+          <section className="mb-5 text-center max-w-2xl mx-auto">
+            <p className="text-xs text-slate-700 leading-relaxed">{summary}</p>
+          </section>
+        )}
+
+        {/* Balanced 2-Column Body */}
+        <div className="grid grid-cols-12 gap-6 pt-4 border-t border-slate-200">
+          <div className="col-span-7 space-y-5">
+            {visibleSections.experience && experience.length > 0 && (
+              <section>
+                <h2 className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: primaryColor }}>
+                  Experience
+                </h2>
+                <div className="space-y-4">
+                  {experience.map((exp) => (
+                    <div key={exp.id}>
+                      <div className="flex justify-between items-baseline">
+                        <h3 className="text-xs font-bold text-slate-900">{exp.role}</h3>
+                        <span className="text-[10px] text-slate-500">
+                          {exp.startDate} – {exp.current ? 'Present' : exp.endDate}
+                        </span>
+                      </div>
+                      <div className="text-[11px] font-medium mb-1" style={{ color: primaryColor }}>
+                        {exp.company} {exp.location ? `· ${exp.location}` : ''}
+                      </div>
+                      {exp.highlights && exp.highlights.length > 0 && (
+                        <ul className="list-disc list-outside ml-4 space-y-1 text-[11px] text-slate-700">
+                          {exp.highlights.filter(Boolean).map((h, i) => (
+                            <li key={i}>{h}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {visibleSections.projects && projects.length > 0 && (
+              <section>
+                <h2 className="text-xs font-bold uppercase tracking-widest mb-2.5" style={{ color: primaryColor }}>
+                  Projects
+                </h2>
+                <div className="space-y-2.5">
+                  {projects.map((p) => (
+                    <div key={p.id}>
+                      <div className="font-bold text-xs text-slate-900">{p.name}</div>
+                      {p.description && <p className="text-[11px] text-slate-700">{p.description}</p>}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+
+          <div className="col-span-5 space-y-5 pl-4 border-l border-slate-200">
+            {visibleSections.skills && skillCategories.length > 0 && (
+              <section>
+                <h2 className="text-xs font-bold uppercase tracking-widest mb-2.5" style={{ color: primaryColor }}>
+                  Skills
+                </h2>
+                <div className="space-y-2.5">
+                  {skillCategories.map((cat) => (
+                    <div key={cat.id}>
+                      {cat.name && <div className="text-[11px] font-bold text-slate-800 mb-1">{cat.name}</div>}
+                      <div className="flex flex-wrap gap-1">
+                        {cat.skills.map((s, idx) => (
+                          <span
+                            key={idx}
+                            className="text-[10px] px-2 py-0.5 rounded-md font-medium"
+                            style={{ backgroundColor: `${primaryColor}12`, color: primaryColor }}
+                          >
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {visibleSections.education && education.length > 0 && (
+              <section>
+                <h2 className="text-xs font-bold uppercase tracking-widest mb-2.5" style={{ color: primaryColor }}>
+                  Education
+                </h2>
+                <div className="space-y-2.5">
+                  {education.map((edu) => (
+                    <div key={edu.id} className="text-[11px]">
+                      <div className="font-bold text-slate-900">{edu.degree}</div>
+                      <div className="text-slate-600">{edu.institution}</div>
+                      <div className="text-[10px] text-slate-500">
+                        {edu.startDate} – {edu.current ? 'Present' : edu.endDate}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {visibleSections.certifications && certifications.length > 0 && (
+              <section>
+                <h2 className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: primaryColor }}>
+                  Certifications
+                </h2>
+                <div className="space-y-1.5 text-[11px] text-slate-700">
+                  {certifications.map((c) => (
+                    <div key={c.id}>
+                      <div className="font-semibold text-slate-900">{c.name}</div>
+                      <div className="text-[10px] text-slate-500">
+                        {c.issuer} {c.date ? `· ${c.date}` : ''}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        </div>
+
+        {declaration && declaration.enabled !== false && renderDeclarationSection('academic')}
+      </div>
+    );
+  };
+
+  // =========================================================================
+  // 17. CANVA CHARCOAL EXECUTIVE (Dark Full-Height Sidebar + Bright White Main)
+  // =========================================================================
+  const renderCanvaDarkSidebar = () => (
+    <div className="flex min-h-[297mm] text-slate-800" style={{ lineHeight }}>
+      {/* Dark Charcoal / Colored Executive Sidebar */}
+      <aside
+        className="w-[35%] p-6 text-white flex flex-col gap-5 print-sidebar"
+        style={{ backgroundColor: primaryColor === '#2563eb' ? '#1e293b' : primaryColor }}
+      >
+        <div className="flex flex-col items-center text-center">
+          {personal.photo && (
+            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white/25 shadow-md mb-3 bg-white/10">
+              <img src={personal.photo} alt={personal.fullName} className="w-full h-full object-cover" />
+            </div>
+          )}
+          <h1 className="text-xl font-bold text-white tracking-tight leading-snug">
+            {personal.fullName || 'Your Name'}
+          </h1>
+          {personal.title && (
+            <p className="text-[11px] font-medium text-white/80 uppercase tracking-widest mt-1">
+              {personal.title}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2 text-[11px] text-white/85 pt-3 border-t border-white/15">
+          <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">Contact</h2>
+          {personal.email && <div className="break-all">{personal.email}</div>}
+          {personal.phone && <div>{personal.phone}</div>}
+          {personal.location && <div>{personal.location}</div>}
+          {validateAndFormatUrl(personal.linkedin).isValid && (
+            <div className="break-all text-white/75">{validateAndFormatUrl(personal.linkedin).display}</div>
+          )}
+          {validateAndFormatUrl(personal.github).isValid && (
+            <div className="break-all text-white/75">{validateAndFormatUrl(personal.github).display}</div>
+          )}
+        </div>
+
+        {visibleSections.skills && skillCategories.length > 0 && (
+          <div className="space-y-3 pt-3 border-t border-white/15">
+            <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">Technical Skills</h2>
+            {skillCategories.map((cat) => (
+              <div key={cat.id} className="space-y-1">
+                {cat.name && <div className="text-[11px] font-semibold text-white">{cat.name}</div>}
+                <div className="flex flex-wrap gap-1">
+                  {cat.skills.map((s, idx) => (
+                    <span
+                      key={idx}
+                      className="text-[10px] px-2 py-0.5 rounded-sm bg-white/12 text-white/95 border border-white/15"
+                    >
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {visibleSections.education && education.length > 0 && (
+          <div className="space-y-2.5 pt-3 border-t border-white/15">
+            <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">Education</h2>
+            {education.map((edu) => (
+              <div key={edu.id} className="text-[11px] space-y-0.5">
+                <div className="font-bold text-white">{edu.degree}</div>
+                <div className="text-white/80">{edu.institution}</div>
+                <div className="text-[10px] text-white/60">
+                  {edu.startDate} – {edu.current ? 'Present' : edu.endDate}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </aside>
+
+      {/* Main White Content Column */}
+      <div className="flex-1 p-7 bg-white flex flex-col" style={{ gap: `${sectionGap}px` }}>
+        {visibleSections.summary && summary && (
+          <section>
+            <h2 className="text-xs font-extrabold uppercase tracking-widest border-b-2 pb-1 mb-2 text-slate-900" style={{ borderColor: primaryColor }}>
+              Executive Summary
+            </h2>
+            <p className="text-xs text-slate-700 leading-relaxed">{summary}</p>
+          </section>
+        )}
+
+        {visibleSections.experience && experience.length > 0 && (
+          <section>
+            <h2 className="text-xs font-extrabold uppercase tracking-widest border-b-2 pb-1 mb-3 text-slate-900" style={{ borderColor: primaryColor }}>
+              Professional Experience
+            </h2>
+            <div className="space-y-4">
+              {experience.map((exp) => (
+                <div key={exp.id}>
+                  <div className="flex justify-between items-baseline">
+                    <h3 className="text-xs font-bold text-slate-900">{exp.role}</h3>
+                    <span className="text-[10px] font-semibold text-slate-500">
+                      {exp.startDate} – {exp.current ? 'Present' : exp.endDate}
+                    </span>
+                  </div>
+                  <div className="text-[11px] font-semibold text-slate-600 mb-1">
+                    {exp.company} {exp.location ? `· ${exp.location}` : ''}
+                  </div>
+                  {exp.highlights && exp.highlights.length > 0 && (
+                    <ul className="list-disc list-outside ml-4 space-y-1 text-[11px] text-slate-700">
+                      {exp.highlights.filter(Boolean).map((h, i) => (
+                        <li key={i}>{h}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {visibleSections.certifications && certifications.length > 0 && (
+          <section>
+            <h2 className="text-xs font-extrabold uppercase tracking-widest border-b-2 pb-1 mb-2 text-slate-900" style={{ borderColor: primaryColor }}>
+              Certifications
+            </h2>
+            <div className="space-y-1 text-[11px] text-slate-700">
+              {certifications.map((c) => (
+                <div key={c.id} className="flex justify-between">
+                  <span><strong>{c.name}</strong> {c.issuer ? `— ${c.issuer}` : ''}</span>
+                  <span className="text-slate-500">{c.date}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {visibleSections.projects && projects.length > 0 && (
+          <section>
+            <h2 className="text-xs font-extrabold uppercase tracking-widest border-b-2 pb-1 mb-2 text-slate-900" style={{ borderColor: primaryColor }}>
+              Projects
+            </h2>
+            <div className="space-y-2">
+              {projects.map((p) => (
+                <div key={p.id}>
+                  <div className="text-xs font-bold text-slate-900">{p.name}</div>
+                  {p.description && <p className="text-[11px] text-slate-700">{p.description}</p>}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {declaration && declaration.enabled !== false && renderDeclarationSection('academic')}
+      </div>
+    </div>
+  );
+
+  // =========================================================================
+  // 18. CANVA PASTEL RIBBON (Soft Banner Header + Square Section Markers)
+  // =========================================================================
+  const renderCanvaRibbon = () => (
+    <div style={{ lineHeight }} className="text-slate-800">
+      {/* Top Soft Pastel Ribbon */}
+      <header
+        className="px-8 py-6 flex items-center justify-between gap-6 border-b-2"
+        style={{ backgroundColor: `${primaryColor}14`, borderColor: `${primaryColor}35` }}
+      >
+        <div className="space-y-1.5 flex-1">
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            {personal.fullName || 'Your Name'}
+          </h1>
+          {personal.title && (
+            <p className="text-sm font-semibold" style={{ color: primaryColor }}>
+              {personal.title}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-600 pt-1">
+            {personal.email && <span>{personal.email}</span>}
+            {personal.phone && <span>· {personal.phone}</span>}
+            {personal.location && <span>· {personal.location}</span>}
+            {validateAndFormatUrl(personal.website).isValid && (
+              <span>· {validateAndFormatUrl(personal.website).display}</span>
+            )}
+          </div>
+        </div>
+        {personal.photo && (
+          <div
+            className="w-20 h-20 rounded-xl overflow-hidden border-2 bg-white shadow-sm shrink-0"
+            style={{ borderColor: primaryColor }}
+          >
+            <img src={personal.photo} alt={personal.fullName} className="w-full h-full object-cover" />
+          </div>
+        )}
+      </header>
+
+      {/* Main Content */}
+      <div style={{ padding: `${pageMargin}mm`, gap: `${sectionGap}px` }} className="flex flex-col">
+        {visibleSections.summary && summary && (
+          <section>
+            <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-900 mb-2">
+              <span className="w-2.5 h-2.5 rounded-xs inline-block" style={{ backgroundColor: primaryColor }} />
+              <span>Profile Summary</span>
+            </h2>
+            <p className="text-xs text-slate-700 leading-relaxed">{summary}</p>
+          </section>
+        )}
+
+        {visibleSections.experience && experience.length > 0 && (
+          <section>
+            <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-900 mb-3">
+              <span className="w-2.5 h-2.5 rounded-xs inline-block" style={{ backgroundColor: primaryColor }} />
+              <span>Experience</span>
+            </h2>
+            <div className="space-y-4">
+              {experience.map((exp) => (
+                <div key={exp.id}>
+                  <div className="flex justify-between items-baseline">
+                    <h3 className="text-xs font-bold text-slate-900">
+                      {exp.role} <span className="font-medium text-slate-500">· {exp.company}</span>
+                    </h3>
+                    <span className="text-[10.5px] font-medium" style={{ color: primaryColor }}>
+                      {exp.startDate} – {exp.current ? 'Present' : exp.endDate}
+                    </span>
+                  </div>
+                  {exp.highlights && exp.highlights.length > 0 && (
+                    <ul className="list-disc list-outside ml-4 mt-1 space-y-1 text-[11px] text-slate-700">
+                      {exp.highlights.filter(Boolean).map((h, i) => (
+                        <li key={i}>{h}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <div className="grid grid-cols-2 gap-6">
+          {visibleSections.education && education.length > 0 && (
+            <section>
+              <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-900 mb-2.5">
+                <span className="w-2.5 h-2.5 rounded-xs inline-block" style={{ backgroundColor: primaryColor }} />
+                <span>Education</span>
+              </h2>
+              <div className="space-y-2.5">
+                {education.map((edu) => (
+                  <div key={edu.id} className="text-[11px]">
+                    <div className="font-bold text-slate-900">{edu.degree}</div>
+                    <div className="text-slate-600">{edu.institution}</div>
+                    <div className="text-[10px] text-slate-500">
+                      {edu.startDate} – {edu.current ? 'Present' : edu.endDate}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {visibleSections.skills && skillCategories.length > 0 && (
+            <section>
+              <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-900 mb-2.5">
+                <span className="w-2.5 h-2.5 rounded-xs inline-block" style={{ backgroundColor: primaryColor }} />
+                <span>Skills & Tools</span>
+              </h2>
+              <div className="flex flex-wrap gap-1.5">
+                {skillCategories.flatMap((cat) => cat.skills).map((skill, idx) => (
+                  <span
+                    key={idx}
+                    className="text-[10.5px] px-2.5 py-0.5 rounded-md border font-medium"
+                    style={{
+                      borderColor: `${primaryColor}40`,
+                      backgroundColor: `${primaryColor}08`,
+                      color: '#1e293b',
+                    }}
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+
+        {visibleSections.projects && projects.length > 0 && (
+          <section>
+            <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-900 mb-2">
+              <span className="w-2.5 h-2.5 rounded-xs inline-block" style={{ backgroundColor: primaryColor }} />
+              <span>Projects</span>
+            </h2>
+            <div className="space-y-2">
+              {projects.map((p) => (
+                <div key={p.id} className="text-[11px]">
+                  <span className="font-bold text-slate-900">{p.name}</span>
+                  {p.techStack ? <span className="text-slate-500"> ({p.techStack})</span> : null}
+                  {p.description && <p className="text-slate-700 mt-0.5">{p.description}</p>}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {declaration && declaration.enabled !== false && renderDeclarationSection('academic')}
+      </div>
+    </div>
+  );
+
   return (
     <div
-      id="resume-document"
+      id={isThumbnail ? undefined : 'resume-document'}
       data-template={template}
-      className="resume-page bg-white shadow-xl rounded-lg mx-auto w-full max-w-[210mm] min-h-[297mm] transition-all duration-150 overflow-visible"
+      className={
+        isThumbnail
+          ? 'resume-page resume-document-styled bg-white w-[794px] min-h-[1123px] overflow-hidden select-none pointer-events-none'
+          : 'resume-page bg-white shadow-xl rounded-lg mx-auto w-full max-w-[210mm] min-h-[297mm] transition-all duration-150 overflow-visible'
+      }
       style={{
         fontFamily: activeFontStack,
         lineHeight,
@@ -3041,6 +3889,24 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, template, se
       {template === 'creative' && renderCreative()}
       {template === 'elegant-serif' && renderElegantSerif()}
       {template === 'compact-one-page' && renderCompactOnePage()}
+      {template === 'canva-nordic' && renderCanvaNordic()}
+      {template === 'canva-editorial-split' && renderCanvaEditorialSplit()}
+      {template === 'canva-monogram' && renderCanvaMonogram()}
+      {template === 'canva-dark-sidebar' && renderCanvaDarkSidebar()}
+      {template === 'canva-ribbon' && renderCanvaRibbon()}
+      {isExtraCanvaTemplate(template) && (
+        <CanvaResumeRenderer
+          templateId={template}
+          data={data}
+          settings={settings}
+          primaryColor={primaryColor}
+          lineHeight={lineHeight}
+          pageMargin={pageMargin}
+          sectionGap={sectionGap}
+          validateAndFormatUrl={validateAndFormatUrl}
+          renderDeclaration={renderDeclarationSection}
+        />
+      )}
       {![
         'academic',
         'academic-decl',
@@ -3055,7 +3921,14 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, template, se
         'creative',
         'elegant-serif',
         'compact-one-page',
-      ].includes(template) && renderAcademic(false, false)}
+        'canva-nordic',
+        'canva-editorial-split',
+        'canva-monogram',
+        'canva-dark-sidebar',
+        'canva-ribbon',
+      ].includes(template) &&
+        !isExtraCanvaTemplate(template) &&
+        renderAcademic(false, false)}
     </div>
   );
 };

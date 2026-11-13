@@ -8,6 +8,8 @@ import { JobMatchMode } from './components/JobMatchMode';
 import { ResuvoLogo } from './components/ResuvoLogo';
 import { ResumeBuddy } from './components/ResumeBuddy';
 import { DesignStudio, TEMPLATES } from './components/DesignStudio';
+import { TemplateChooserModal } from './components/TemplateChooserModal';
+import { TEMPLATE_SHOWCASE_CONFIGS } from './data/templateSamples';
 import { WelcomeIllustration } from './components/WelcomeIllustration';
 import { downloadResumeDocx } from './utils/docxExport';
 import {
@@ -100,21 +102,7 @@ const loadInitialResumeData = (): ResumeData => {
   return initialResumeData;
 };
 
-const VALID_TEMPLATES: ResumeTemplateId[] = [
-  'academic',
-  'academic-decl',
-  'academic-photo-decl',
-  'traditional',
-  'two-column',
-  'modern',
-  'classic',
-  'minimal-ats',
-  'corporate',
-  'modern-minimalist',
-  'creative',
-  'elegant-serif',
-  'compact-one-page',
-];
+const VALID_TEMPLATES = Object.keys(TEMPLATE_SHOWCASE_CONFIGS) as ResumeTemplateId[];
 
 // Safe localStorage loader for template
 const loadInitialTemplate = (): ResumeTemplateId => {
@@ -359,7 +347,7 @@ export const App: React.FC = () => {
 
   // Primary navigation: exactly five options in order: 'edit' | 'job-match' | 'preview' | 'draft' | 'design-studio'
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<WorkspaceTab>('edit');
-  const [showNewResumeModal, setShowNewResumeModal] = useState<boolean>(false);
+  const [templateModalMode, setTemplateModalMode] = useState<'new-resume' | 'switch-template' | null>(null);
   const [lastSavedTime, setLastSavedTime] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('resuvo_last_saved_time') || 'Just now';
@@ -503,17 +491,20 @@ export const App: React.FC = () => {
   }, []);
 
   // Explicit template selection handler
-  const handleSelectTemplate = (selectedId: ResumeTemplateId) => {
+  const handleSelectTemplate = (selectedId: ResumeTemplateId, overrideColor?: string) => {
+    const templateCfg = TEMPLATE_SHOWCASE_CONFIGS[selectedId];
     setTemplate(selectedId);
     setSettings((prev) => ({
       ...prev,
       template: selectedId,
-      fontFamily:
-        selectedId === 'classic' || selectedId === 'traditional' || selectedId === 'elegant-serif'
-          ? 'serif'
-          : selectedId === 'two-column' || selectedId === 'corporate' || selectedId === 'creative'
-          ? 'modern'
-          : 'sans',
+      primaryColor: overrideColor || prev.primaryColor,
+      fontFamily: templateCfg?.baseFont || 'sans',
+      typography: prev.typography
+        ? {
+            ...prev.typography,
+            fontFamily: templateCfg?.fontFamily || prev.typography.fontFamily,
+          }
+        : undefined,
     }));
   };
 
@@ -754,16 +745,12 @@ export const App: React.FC = () => {
     setShowClearModal(false);
   };
 
-  // Create New Resume handlers
+  // Create New Resume handlers: always opens multi-template chooser modal
   const handleCreateNewResumeClick = () => {
-    if (hasSavedDraft) {
-      setShowNewResumeModal(true);
-    } else {
-      handleConfirmCreateNew();
-    }
+    setTemplateModalMode('new-resume');
   };
 
-  const handleConfirmCreateNew = () => {
+  const handleConfirmCreateNew = (chosenTemplate?: ResumeTemplateId, chosenColor?: string) => {
     const emptyData: ResumeData = {
       personal: {
         fullName: '',
@@ -802,9 +789,14 @@ export const App: React.FC = () => {
     };
     setData(emptyData);
     setIsSampleActive(false);
+    if (chosenTemplate) {
+      handleSelectTemplate(chosenTemplate, chosenColor);
+    } else if (chosenColor) {
+      setSettings((prev) => ({ ...prev, primaryColor: chosenColor }));
+    }
     setActiveFormSection('personal');
     setActiveWorkspaceTab('edit');
-    setShowNewResumeModal(false);
+    setTemplateModalMode(null);
     try {
       localStorage.removeItem(STORAGE_IS_SAMPLE_KEY);
       localStorage.setItem(STORAGE_RESUME_KEY, JSON.stringify(emptyData));
@@ -813,9 +805,9 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleExportBackupAndCreateNew = () => {
-    handleExportJSON();
-    handleConfirmCreateNew();
+  const handleApplyChosenTemplate = (chosenTemplate: ResumeTemplateId, chosenColor: string) => {
+    handleSelectTemplate(chosenTemplate, chosenColor);
+    setTemplateModalMode(null);
   };
 
   return (
@@ -1240,11 +1232,11 @@ export const App: React.FC = () => {
 
                 {/* Action Buttons */}
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setActiveWorkspaceTab('preview')}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-md font-semibold transition-colors cursor-pointer border border-slate-200 dark:border-slate-700"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-md font-semibold transition-colors cursor-pointer border border-slate-200 dark:border-slate-700 whitespace-nowrap shrink-0"
                     >
                       <Eye className="w-3.5 h-3.5" />
                       <span>View Preview</span>
@@ -1252,17 +1244,25 @@ export const App: React.FC = () => {
                     <button
                       type="button"
                       onClick={handleExportJSON}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-md font-semibold transition-colors cursor-pointer border border-slate-200 dark:border-slate-700"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-md font-semibold transition-colors cursor-pointer border border-slate-200 dark:border-slate-700 whitespace-nowrap shrink-0"
                     >
                       <Download className="w-3.5 h-3.5" />
                       <span>Export JSON Backup</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCreateNewResumeClick}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-md font-semibold transition-colors cursor-pointer border border-slate-200 dark:border-slate-700 whitespace-nowrap shrink-0"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Create New Resume</span>
                     </button>
                   </div>
 
                   <button
                     type="button"
                     onClick={isViewingPreservedDraft ? handleRestoreUserDraft : () => setActiveWorkspaceTab('edit')}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-semibold transition-colors cursor-pointer shadow-xs"
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-semibold transition-colors cursor-pointer shadow-xs whitespace-nowrap shrink-0"
                   >
                     <span>{isViewingPreservedDraft ? 'Restore This Draft' : 'Edit This Draft'}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -1281,7 +1281,7 @@ export const App: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleBackToHome}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors shadow-2xs cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors shadow-2xs cursor-pointer whitespace-nowrap shrink-0"
                   title="Return to Resuvo Home"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
@@ -1293,9 +1293,27 @@ export const App: React.FC = () => {
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">Auto-saved to your browser. Updates preview instantly.</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 rounded-full border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" /> Auto-Saved
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTemplateModalMode('switch-template')}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                  title="Choose from 13 resume templates"
+                >
+                  <Layout className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <span>Template: {TEMPLATES.find((t) => t.id === template)?.shortName || 'Academic'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateNewResumeClick}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-950 rounded-lg border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                  title="Create a brand new blank resume"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>New Resume</span>
+                </button>
+                <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400 flex items-center gap-1 whitespace-nowrap shrink-0 px-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Auto-Saved
                 </span>
               </div>
             </div>
@@ -1327,26 +1345,32 @@ export const App: React.FC = () => {
           <div className="space-y-4">
             {/* Preview Action Bar with clear "Edit Resume" button to return to editing */}
             <div className="no-print bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setActiveWorkspaceTab('edit')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold rounded-lg shadow-xs transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold rounded-lg shadow-xs transition-colors cursor-pointer whitespace-nowrap shrink-0"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Edit Resume</span>
                 </button>
                 <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
                   <span>Document Preview</span>
-                  <span className="text-slate-400 dark:text-slate-500">•</span>
-                  <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
-                    {TEMPLATES.find((t) => t.id === template)?.name || 'Academic'}
-                  </span>
+                  <span className="text-slate-400 dark:text-slate-500">·</span>
+                  <button
+                    type="button"
+                    onClick={() => setTemplateModalMode('switch-template')}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                    title="Browse and switch resume template"
+                  >
+                    <Layout className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                    <span>{TEMPLATES.find((t) => t.id === template)?.name || 'Academic'}</span>
+                    <ChevronDown className="w-3 h-3 text-slate-400" />
+                  </button>
                 </div>
               </div>
               <span className="text-[11px] text-slate-400 dark:text-slate-500 hidden sm:inline">
-                A4 Paper • Print-Ready
+                A4 Paper · Print-Ready
               </span>
             </div>
 
@@ -1543,6 +1567,21 @@ export const App: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Create New Resume & Multiple Template Chooser Modal */}
+      <TemplateChooserModal
+        isOpen={templateModalMode !== null}
+        mode={templateModalMode || 'new-resume'}
+        currentTemplate={template}
+        currentColor={settings.primaryColor || '#2563eb'}
+        currentResumeData={data}
+        hasSavedDraft={hasSavedDraft}
+        currentDraftName={data.personal.fullName?.trim() || undefined}
+        onClose={() => setTemplateModalMode(null)}
+        onCreateNew={handleConfirmCreateNew}
+        onSelectTemplate={handleApplyChosenTemplate}
+        onBackupDraftJson={handleExportJSON}
+      />
 
       {/* Embedded Iframe Print Helper Modal */}
       {showPrintModal && (

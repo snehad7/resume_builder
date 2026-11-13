@@ -10,23 +10,28 @@
 
 /* Resume Paper isolation: guarantees resume preview document is ALWAYS crisp white paper */
 #resume-document,
+.resume-document-styled,
 .resume-page {
   background-color: #ffffff !important;
   color: #0f172a !important;
 }
 
 /* Ensure resume preview children inherit resume paper colors, not app dark mode */
-#resume-document * {
+#resume-document *,
+.resume-document-styled * {
   color-scheme: light;
 }
 
 /* Document-level dynamic typographic & layout rules from Design Studio */
-#resume-document {
+#resume-document,
+.resume-document-styled {
   font-family: var(--resume-font-family, Inter, system-ui, sans-serif);
 }
 
 #resume-document h1,
-#resume-document .resume-name {
+#resume-document .resume-name,
+.resume-document-styled h1,
+.resume-document-styled .resume-name {
   font-size: var(--resume-name-size, 26px) !important;
   font-weight: var(--resume-name-weight, 700) !important;
   font-style: var(--resume-name-style, normal) !important;
@@ -34,7 +39,9 @@
 }
 
 #resume-document h2,
-#resume-document .resume-section-heading {
+#resume-document .resume-section-heading,
+.resume-document-styled h2,
+.resume-document-styled .resume-section-heading {
   font-size: var(--resume-heading-size, 14px) !important;
   font-weight: var(--resume-heading-weight, 600) !important;
   font-style: var(--resume-heading-style, normal) !important;
@@ -42,7 +49,9 @@
 }
 
 #resume-document h3,
-#resume-document .resume-subheading {
+#resume-document .resume-subheading,
+.resume-document-styled h3,
+.resume-document-styled .resume-subheading {
   font-weight: var(--resume-subheading-weight, 500) !important;
   font-style: var(--resume-subheading-style, normal) !important;
   text-decoration: var(--resume-subheading-decoration, none) !important;
@@ -50,7 +59,10 @@
 
 #resume-document p,
 #resume-document li,
-#resume-document .resume-body-text {
+#resume-document .resume-body-text,
+.resume-document-styled p,
+.resume-document-styled li,
+.resume-document-styled .resume-body-text {
   font-size: var(--resume-body-size, 11px);
   font-weight: var(--resume-body-weight, 400);
   font-style: var(--resume-body-style, normal);

@@ -16,6 +16,7 @@ import {
   VerticalAlign,
 } from 'docx';
 import { ResumeData, ResumeSettings } from '../types/resume';
+import { EXTRA_CANVA_RECIPES, isExtraCanvaTemplate } from '../data/canvaTemplates';
 
 /**
  * Converts a base64 data URL (e.g. "data:image/png;base64,iVBOR...") to a Uint8Array
@@ -87,17 +88,46 @@ export async function generateDocxBlob(
   ): Promise<{ blob: Blob; fileName: string }> {
   const { personal, summary, experience, education, skillCategories, projects, certifications, customSections, declaration } = data;
   const template = settings.template || 'academic';
+  const extraRecipe = isExtraCanvaTemplate(template) ? EXTRA_CANVA_RECIPES[template] : null;
   const isTraditional = template === 'traditional';
   const isAcademic = template.startsWith('academic');
-  const isMinimalATS = template === 'minimal-ats';
-  const isCorporate = template === 'corporate';
-  const isModernMinimalist = template === 'modern-minimalist';
-  const isCreative = template === 'creative';
-  const isElegantSerif = template === 'elegant-serif';
+  const isMinimalATS = template === 'minimal-ats' || template === 'canva-minimal-type';
+  const isCorporate =
+    template === 'corporate' ||
+    template === 'canva-dark-sidebar' ||
+    template === 'canva-monogram' ||
+    template === 'canva-executive-slate' ||
+    template === 'canva-midnight-gold' ||
+    template === 'canva-navy-banner' ||
+    template === 'canva-headline-box';
+  const isModernMinimalist =
+    template === 'modern-minimalist' ||
+    template === 'canva-nordic' ||
+    template === 'canva-vermilion-line' ||
+    template === 'canva-slate-rightbar' ||
+    template === 'canva-tech-mono';
+  const isCreative =
+    template === 'creative' ||
+    template === 'canva-editorial-split' ||
+    template === 'canva-ribbon' ||
+    Boolean(
+      extraRecipe &&
+        !isCorporate &&
+        !isModernMinimalist &&
+        !isMinimalATS &&
+        extraRecipe.sectionStyle !== 'double-rule'
+    );
+  const isElegantSerif =
+    template === 'elegant-serif' ||
+    template === 'canva-broadsheet' ||
+    template === 'canva-ivory-classic' ||
+    template === 'canva-blush-minimal' ||
+    template === 'canva-executive-signature';
   const isCompact = template === 'compact-one-page';
   const isPhotoLayout =
     template === 'academic-photo-decl' ||
-    ((isCreative || isCorporate) && Boolean(personal.photo));
+    Boolean(extraRecipe?.showPhoto && personal.photo) ||
+    ((isCreative || isCorporate || isModernMinimalist) && Boolean(personal.photo));
 
   const typographyFont = settings.typography?.fontFamily;
   const fontName =

@@ -8,6 +8,12 @@ import {
   FontWeight,
   CustomDesignPreset,
 } from '../types/resume';
+import { ScaledTemplatePreview } from './ScaledTemplatePreview';
+import {
+  TEMPLATE_SHOWCASE_CONFIGS,
+  getSampleSettingsForTemplate,
+} from '../data/templateSamples';
+import { EXTRA_CANVA_TEMPLATES_LIST } from '../data/canvaTemplates';
 import {
   Layout,
   Palette,
@@ -28,6 +34,7 @@ import {
   Trash2,
   Info,
   SlidersHorizontal,
+  Search,
 } from 'lucide-react';
 
 export const TEMPLATES: {
@@ -118,6 +125,42 @@ export const TEMPLATES: {
     desc: 'Dense, space-optimized layout designed to fit on a single page while preserving full content',
     badge: '1-Page',
   },
+  {
+    id: 'canva-nordic',
+    name: 'Canva Nordic Sage',
+    shortName: 'Nordic Sage',
+    desc: 'Canva-inspired soft tinted sidebar with circular portrait, tracked headers & clean timeline',
+    badge: 'Canva Style',
+  },
+  {
+    id: 'canva-editorial-split',
+    name: 'Canva Editorial Bold',
+    shortName: 'Editorial Bold',
+    desc: 'Canva-inspired bold typographic nameplate with asymmetric callout sidebar & clean columns',
+    badge: 'Canva Style',
+  },
+  {
+    id: 'canva-monogram',
+    name: 'Canva Monogram Studio',
+    shortName: 'Monogram Studio',
+    desc: 'Canva-inspired centered initials monogram card above balanced two-column career layout',
+    badge: 'Canva Style',
+  },
+  {
+    id: 'canva-dark-sidebar',
+    name: 'Canva Charcoal Executive',
+    shortName: 'Charcoal Exec',
+    desc: 'Canva-inspired high-contrast dark sidebar with circular photo & bright structured main pane',
+    badge: 'Canva Style',
+  },
+  {
+    id: 'canva-ribbon',
+    name: 'Canva Pastel Ribbon',
+    shortName: 'Pastel Ribbon',
+    desc: 'Canva-inspired soft tinted top banner ribbon with square section markers & skill chips',
+    badge: 'Canva Style',
+  },
+  ...EXTRA_CANVA_TEMPLATES_LIST,
 ];
 
 export interface ColorSwatch {
@@ -320,6 +363,8 @@ export const DesignStudio: React.FC<DesignStudioProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [isPresetsExpanded, setIsPresetsExpanded] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState<CategoryId | null>('template');
+  const [templateFilterTab, setTemplateFilterTab] = useState<'all' | 'canva' | 'core'>('all');
+  const [templateSearchQuery, setTemplateSearchQuery] = useState('');
   const [selectedPaletteTab, setSelectedPaletteTab] = useState<string>('pro-blue');
   const [formattingTarget, setFormattingTarget] = useState<FormattingTarget>('name');
   const [customPresetName, setCustomPresetName] = useState('');
@@ -1001,10 +1046,69 @@ export const DesignStudio: React.FC<DesignStudioProps> = ({
             </button>
 
             {expandedCategory === 'template' && (
-              <div className="px-3.5 pb-3.5 pt-1 bg-slate-50/60 dark:bg-slate-950/40 border-t border-slate-100 dark:border-slate-800">
-                <div className="grid grid-cols-2 gap-1.5 max-h-72 overflow-y-auto pr-1">
-                  {TEMPLATES.map((t) => {
+              <div className="px-3.5 pb-3.5 pt-2 bg-slate-50/60 dark:bg-slate-950/40 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                {/* Filter + Search controls for 48 templates */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={templateSearchQuery}
+                      onChange={(e) => setTemplateSearchQuery(e.target.value)}
+                      placeholder="Filter 48 templates (e.g. Canva, Sidebar, Serif)..."
+                      className="w-full pl-7 pr-7 py-1 text-[11px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                    />
+                    {templateSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setTemplateSearchQuery('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                        aria-label="Clear template search"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 text-[10.5px]">
+                    {[
+                      { id: 'all' as const, label: `All (${TEMPLATES.length})` },
+                      { id: 'canva' as const, label: `Canva Styles (${TEMPLATES.filter((t) => t.id.startsWith('canva-')).length})` },
+                      { id: 'core' as const, label: `Core & ATS (${TEMPLATES.filter((t) => !t.id.startsWith('canva-')).length})` },
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setTemplateFilterTab(tab.id)}
+                        className={`px-2 py-0.5 rounded font-medium cursor-pointer transition-colors whitespace-nowrap ${
+                          templateFilterTab === tab.id
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:border-indigo-300'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 max-h-96 overflow-y-auto pr-1">
+                  {TEMPLATES.filter((t) => {
+                    if (templateFilterTab === 'canva' && !t.id.startsWith('canva-')) return false;
+                    if (templateFilterTab === 'core' && t.id.startsWith('canva-')) return false;
+                    const q = templateSearchQuery.trim().toLowerCase();
+                    if (!q) return true;
+                    const cfg = TEMPLATE_SHOWCASE_CONFIGS[t.id];
+                    return (
+                      t.name.toLowerCase().includes(q) ||
+                      t.shortName.toLowerCase().includes(q) ||
+                      t.desc.toLowerCase().includes(q) ||
+                      cfg.styleLabel.toLowerCase().includes(q) ||
+                      cfg.sampleData.personal.title.toLowerCase().includes(q)
+                    );
+                  }).map((t) => {
                     const isSelected = template === t.id;
+                    const cfg = TEMPLATE_SHOWCASE_CONFIGS[t.id];
+                    const thumbSettings = getSampleSettingsForTemplate(t.id, cfg.defaultColor);
                     return (
                       <button
                         key={t.id}
@@ -1013,13 +1117,26 @@ export const DesignStudio: React.FC<DesignStudioProps> = ({
                           pushHistory();
                           onSelectTemplate(t.id);
                         }}
-                        className={`p-2 rounded-lg border text-left cursor-pointer transition-all flex flex-col justify-between ${
+                        className={`p-2 rounded-lg border text-left cursor-pointer transition-all flex flex-col gap-1.5 ${
                           isSelected
                             ? 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-500 dark:border-indigo-500 ring-1 ring-indigo-400 shadow-xs'
-                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700'
                         }`}
                       >
-                        <div className="flex items-start justify-between gap-1 mb-1">
+                        <div className="relative w-full">
+                          <ScaledTemplatePreview
+                            data={cfg.sampleData}
+                            template={t.id}
+                            settings={thumbSettings}
+                            aspectClass="aspect-[210/210]"
+                          />
+                          {isSelected && (
+                            <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                              <Check className="w-2.5 h-2.5 stroke-[3]" />
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-start justify-between gap-1">
                           <span
                             className={`font-semibold text-[11px] line-clamp-1 ${
                               isSelected
@@ -1029,11 +1146,9 @@ export const DesignStudio: React.FC<DesignStudioProps> = ({
                           >
                             {t.shortName}
                           </span>
-                          {t.badge && (
-                            <span className="text-[8px] font-bold px-1 py-0.2 bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 rounded shrink-0">
-                              {t.badge}
-                            </span>
-                          )}
+                          <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 shrink-0">
+                            {cfg.styleLabel}
+                          </span>
                         </div>
                         <p className="text-[9.5px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-tight">
                           {t.desc}

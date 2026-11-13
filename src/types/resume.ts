@@ -105,6 +105,38 @@ export interface ResumeData {
   declaration?: DeclarationData;
 }
 
+export type ExtraCanvaTemplateId =
+  | 'canva-swiss-grid'
+  | 'canva-terracotta-warm'
+  | 'canva-midnight-gold'
+  | 'canva-coral-creative'
+  | 'canva-botanical-sage'
+  | 'canva-cobalt-sidebar'
+  | 'canva-plum-sidebar'
+  | 'canva-slate-rightbar'
+  | 'canva-forest-rightbar'
+  | 'canva-sand-sidebar'
+  | 'canva-teal-wave'
+  | 'canva-broadsheet'
+  | 'canva-minimal-type'
+  | 'canva-vermilion-line'
+  | 'canva-ivory-classic'
+  | 'canva-headline-box'
+  | 'canva-pastel-lavender'
+  | 'canva-timeline-dots'
+  | 'canva-timeline-mint'
+  | 'canva-bento-blocks'
+  | 'canva-tech-mono'
+  | 'canva-navy-banner'
+  | 'canva-crimson-edge'
+  | 'canva-ocean-split'
+  | 'canva-polaroid-studio'
+  | 'canva-executive-slate'
+  | 'canva-blush-minimal'
+  | 'canva-amber-highlight'
+  | 'canva-graduate-clean'
+  | 'canva-executive-signature';
+
 export type ResumeTemplateId =
   | 'academic'
   | 'academic-decl'
@@ -118,7 +150,13 @@ export type ResumeTemplateId =
   | 'modern-minimalist'
   | 'creative'
   | 'elegant-serif'
-  | 'compact-one-page';
+  | 'compact-one-page'
+  | 'canva-nordic'
+  | 'canva-editorial-split'
+  | 'canva-monogram'
+  | 'canva-dark-sidebar'
+  | 'canva-ribbon'
+  | ExtraCanvaTemplateId;
 
 export type ResumeFont = 'sans' | 'serif' | 'mono' | 'modern';
 
